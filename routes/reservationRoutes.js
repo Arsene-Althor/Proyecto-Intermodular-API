@@ -5,7 +5,7 @@ const reservationController = require('../controllers/reservationController');
 const { requireLogin, requireRole } = require('../middleware/authMiddleware');
 
 // Todas requieren estar autenticado
-router.use(requireLogin);
+//router.use(requireLogin);
 
 // Añadir Reserva
 router.post('/add', requireRole('cliente'), reservationController.addReservation);

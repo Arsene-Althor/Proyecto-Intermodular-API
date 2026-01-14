@@ -1,5 +1,6 @@
 //Controlers para Reservas
 const Reservation = require('../models/Reservation');
+const mongoose = require('mongoose');
 
 // Añadir reserva
 async function addReservation(req, res) {
@@ -61,10 +62,10 @@ async function deleteReservation(req, res) {
 // Obtener una reserva
 async function getReservation(req, res) {
   try {
-    const {code} = req.body;
-    const item = await Item.findOne({ code });
-    if (!item) return res.status(404).json({ error: 'Artículo no encontrado' });
-    res.json(item);
+    const {id} = req.body;
+    const reservation = await Reservation.findById(id)
+    if (!reservation) return res.status(404).json({ error: 'Reserva no encontrada' });
+    res.json(reservation);
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener artículo', detalle: err.message });
   }
@@ -73,8 +74,9 @@ async function getReservation(req, res) {
 // Obtener todas las reservas
 async function getAllReservations(req, res) {
   try {
-    const items = await Item.find();
-    res.json(items);
+    console.log("Intentando leer de la DB:", mongoose.connection.name);
+    const reservations = await Reservation.find();
+    res.json(reservations);
   } catch (err) {
     res.status(500).json({ error: 'Error al listar artículos', detalle: err.message });
   }

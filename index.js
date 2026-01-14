@@ -27,6 +27,9 @@ dbConnection();
 app.use('/auth', authRoutes);
 app.use('/stock', stockRoutes);
 app.use('/reservation',reservationRoutes)
+//app.use('/room',roomRoutes)
+//app.use('/user',userRoutes)
+
 
 // Puerto
 const PORT = process.env.PORT || 3000;

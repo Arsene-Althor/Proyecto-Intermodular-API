@@ -2,9 +2,11 @@
 //Modificacion 3
 const express = require('express');
 const session = require('express-session');
-const mongoose = require('mongoose');
 const authRoutes = require('./routes/authRoutes');
 const stockRoutes = require('./routes/stockRoutes');
+const reservationRoutes = require('./routes/reservationRoutes');
+const dbConnection = require('./db');
+require('dotenv').config();
 
 const app = express();
 
@@ -19,17 +21,18 @@ app.use(session({
   saveUninitialized: false
 }));
 
-// Conexión a MongoDB
-mongoose.connect('mongodb://127.0.0.1:27017/examen_stock')
-  .then(() => console.log('Conectado a MongoDB'))
-  .catch(err => console.error('Error MongoDB', err));
+dbConnection();
 
 // Rutas
 app.use('/auth', authRoutes);
 app.use('/stock', stockRoutes);
+app.use('/reservation',reservationRoutes)
+//app.use('/room',roomRoutes)
+//app.use('/user',userRoutes)
+
 
 // Puerto
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  console.log(`Servidor escuchando en ${PORT}`);
 });

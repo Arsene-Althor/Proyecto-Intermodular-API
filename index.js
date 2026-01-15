@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Sesión (almacenada en memoria
+// Sesión (almacenada en memoria)
 app.use(session({
   secret: 'secreto-examen',
   resave: false,

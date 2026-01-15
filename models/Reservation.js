@@ -2,13 +2,18 @@
 const mongoose = require('mongoose');
 
 const reservationSchema = new mongoose.Schema({
-  id_room:{
-    type: mongoose.Schema.Types.ObjectId,
+  reservation_id:{
+    type : String,
+    required: [true, 'El ID de la reserva es obligatorio'],
+    trim: true
+  },  
+  room_id:{
+    type: String,
     required: [true, 'El ID de la habitación es obligatorio'],
     trim: true
     },
-  id_user: {
-        type: mongoose.Schema.Types.ObjectId,
+  user_id: {
+        type: String,
         required: [true, 'El ID del usuario es obligatorio'],
         trim: true
     },

@@ -7,15 +7,16 @@ const { requireLogin, requireRole } = require('../middleware/authMiddleware');
 // Todas requieren estar autenticado
 //router.use(requireLogin);
 
+//Faltan Roles
 // Añadir Reserva
-router.post('/add', requireRole('cliente'), reservationController.addReservation);
+router.post('/add', reservationController.addReservation);
 
 // Eliminar y modificar reserva
-router.post('/delete', requireRole('admin'), reservationController.deleteReservation);
-router.put('/update', requireRole('admin'), reservationController.updateReservation);
+router.post('/cancel', reservationController.cancelReservation);
+router.put('/update', reservationController.updateReservation);
 
 // Obtener reservas
-router.get('/reservation/:_id',requireRole("admin"), reservationController.getReservation);
-router.get('/allreservations', reservationController.getAllReservations);
+router.get('/one',reservationController.getReservation);
+router.get('/all', reservationController.getAllReservations);
 
 module.exports = router;

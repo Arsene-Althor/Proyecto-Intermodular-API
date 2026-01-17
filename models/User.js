@@ -72,6 +72,8 @@ const userSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'La fecha de nacimiento del usuario es algo obligatorio'],
     trim: true
+
+    //Falta validacion de fecha futura, validar minimo 18 años
   },
   city:{
     type: String,
@@ -87,12 +89,14 @@ const userSchema = new mongoose.Schema({
   profileImage:{
     type: String,
     default: null
+
+    //FAlta validar el tipo de imagenes y el tamaño de estas
   },
   role:{
     type: String,
     enum: ["admin", "employee", "client"],
     required: [true, 'El rol del usuario es algo obligatorio'],
-    trim: true
+    default: 'client'
   },
   isVIP:{
     type: Boolean,

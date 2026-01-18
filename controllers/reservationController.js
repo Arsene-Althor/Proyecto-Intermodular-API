@@ -6,9 +6,15 @@ const mongoose = require('mongoose');
 //Fata validación para existencia de usuario y habitación
 async function addReservation(req, res) {
   try {
-    const { room_id, user_id, check_in, check_out } = req.body;
-    if (!room_id || !user_id || !check_in || !check_out) {
+    const { room_id, user_id, check_in, check_out, price } = req.body;
+    if (!room_id || !user_id || !check_in || !check_out || !price) {
       return res.status(400).json({ error: 'Faltan datos' });
+    }
+
+    const precioNum = parseFloat(price);
+
+    if(isNaN(precioNum) || precioNum <= 0){
+      return res.status(400).json({ error: "El precio debe ser un número mayor que 0" });
     }
 
     let nuevaEntrada = new Date(check_in);
@@ -33,7 +39,7 @@ async function addReservation(req, res) {
     if(!ultimo_id){
       // En caso de no tener ninguna reserva la creamos automaticamente con el primer id 
       new_id = "RSV-001"
-      const reservation = new Reservation({ reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida });
+      const reservation = new Reservation({ reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida, price: precioNum });
       await reservation.save();
       return res.json(reservation)
     }else{
@@ -45,7 +51,7 @@ async function addReservation(req, res) {
       //Buscamos todas las reservas no canceladas de esa habitación para validar que no este ocupada
       let reservations = await Reservation.find({room_id : room_id , cancelation_date: null });
       if (reservations.length === 0) {
-        const reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida });
+        const reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida , price: precioNum });
         await reservation.save();
         return res.json(reservation)
       } else {
@@ -58,7 +64,7 @@ async function addReservation(req, res) {
         }
 
         if(correcto){
-          let reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida });
+          let reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida , price: precioNum });
           await reservation.save();
           return res.json(reservation)
         }else{
@@ -138,7 +144,7 @@ async function getActiveReservations(req, res){
 // Modificar reserva
 async function updateReservation(req, res) {
   try {
-    const { reservation_id, room_id ,user_id, check_in, check_out  } = req.body;
+    const { reservation_id, room_id ,user_id, check_in, check_out, price } = req.body;
 
     const reservation = await Reservation.findOne({ reservation_id });
     if (!reservation){
@@ -150,6 +156,8 @@ async function updateReservation(req, res) {
     reservation.check_out = check_out;
     //Falta validación user existe
     reservation.user_id = user_id;
+    //Falta validación precio valido
+    reservation.price = price;
 
     await reservation.save();
     return res.json({ mensaje: 'Reserva modificada correctamente', reservation });

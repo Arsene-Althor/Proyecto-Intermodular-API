@@ -11,15 +11,21 @@ async function addReservation(req, res) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
-    const nuevaEntrada = new Date(check_in);
-    const nuevaSalida = new Date(check_out);
-    const ahora = new Date();
+    let nuevaEntrada = new Date(check_in);
+    nuevaEntrada.setHours(12,0);
+
+    let nuevaSalida = new Date(check_out);
+    nuevaSalida.setHours(11,0);
+
+    let hoy = new Date();
+    hoy.setHours(0,0);
+   
     let new_id;
     let ultimo_id = await Reservation.findOne()
       .sort({ createdAt: -1 })
       .select('reservation_id');
 
-    if(nuevaEntrada < ahora) return res.status(400).json({ error: 'La fecha de entrada no puede ser inferior a la fecha actual' });
+    if(nuevaEntrada < hoy) return res.status(400).json({ error: 'La fecha de entrada no puede ser inferior a la fecha actual' });
     if(nuevaEntrada > nuevaSalida) return res.status(400).json({ error: 'La fecha de entrada no puede ser superiror a la de salida' });
     
   
@@ -27,7 +33,7 @@ async function addReservation(req, res) {
     if(!ultimo_id){
       // En caso de no tener ninguna reserva la creamos automaticamente con el primer id 
       new_id = "RSV-001"
-      const reservation = new Reservation({ reservation_id: new_id, room_id ,user_id, check_in, check_out });
+      const reservation = new Reservation({ reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida });
       await reservation.save();
       return res.json(reservation)
     }else{
@@ -39,7 +45,7 @@ async function addReservation(req, res) {
       //Buscamos todas las reservas no canceladas de esa habitación para validar que no este ocupada
       let reservations = await Reservation.find({room_id : room_id , cancelation_date: null });
       if (reservations.length === 0) {
-        const reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in, check_out });
+        const reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida });
         await reservation.save();
         return res.json(reservation)
       } else {
@@ -52,7 +58,7 @@ async function addReservation(req, res) {
         }
 
         if(correcto){
-          reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in, check_out });
+          let reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida });
           await reservation.save();
           return res.json(reservation)
         }else{
@@ -115,7 +121,7 @@ async function getAllReservations(req, res) {
 async function getActiveReservations(req, res){
   
   try{
-    const hoy = new Date();
+    let hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     const reservations = await Reservation.find({cancelation_date : null, check_out: { $gte: hoy }});
     if(!reservations || reservations.length === 0){

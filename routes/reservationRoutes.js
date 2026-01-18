@@ -18,5 +18,6 @@ router.put('/update', reservationController.updateReservation);
 // Obtener reservas
 router.get('/one',reservationController.getReservation);
 router.get('/all', reservationController.getAllReservations);
+router.get('/allActive', reservationController.getActiveReservations);
 
 module.exports = router;

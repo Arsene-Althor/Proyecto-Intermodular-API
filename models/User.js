@@ -1,8 +1,6 @@
 // models/User.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-//Instalar dependencia nanoid para funcionamiendo de ids, usa npm install nanoid
-const {nanoid} = require('nanoid');
 
 //Expresiones regulares para validaciones
 const regex = {
@@ -14,9 +12,8 @@ const regex = {
 
 //Modelo del user
 const userSchema = new mongoose.Schema({
-  userId:{
+  user_id:{
     type: String,
-    default: () => `USER-${nanoid(6)}`,
     unique: true,
     immutable: true
   },

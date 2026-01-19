@@ -16,7 +16,7 @@ const regex = {
 const userSchema = new mongoose.Schema({
   userId:{
     type: String,
-    default: () => nanoid(12),
+    default: () => `USER-${nanoid(6)}`,
     unique: true,
     immutable: true
   },

@@ -82,8 +82,8 @@ async function addReservation(req, res) {
 // Cancelar una reserva
 async function cancelReservation(req, res) {
   try {
-    const { reservation_id } = req.body;
-    if (!reservation_id) {
+    const { reservation_id , price } = req.body;
+    if (!reservation_id || !price) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
@@ -94,6 +94,12 @@ async function cancelReservation(req, res) {
       return res.status(400).json({ error: 'La reserva ya estaba cancelada anteriormente' });
     }
 
+    let newPrice = parseFloat(price);
+    if(isNaN(newPrice) || newPrice < 0){
+      return res.status(400).json({ error: "El precio debe ser un número mayor o igual a 0" });
+    }
+
+    reservation.price = newPrice;
     reservation.cancelation_date = new Date();
     await reservation.save();
     

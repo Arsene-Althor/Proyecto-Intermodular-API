@@ -23,15 +23,16 @@ async function addReservation(req, res) {
     let nuevaSalida = new Date(check_out);
     nuevaSalida.setHours(11,0);
 
-    let hoy = new Date();
-    hoy.setHours(0,0);
+    let ayer = new Date();
+    ayer.setDate(ayer.getDate()-1);
+    ayer.setHours(12,0);
    
     let new_id;
     let ultimo_id = await Reservation.findOne()
       .sort({ createdAt: -1 })
       .select('reservation_id');
 
-    if(nuevaEntrada < hoy) return res.status(400).json({ error: 'La fecha de entrada no puede ser inferior a la fecha actual' });
+    if(nuevaEntrada < ayer) return res.status(400).json({ error: 'La fecha de entrada no puede ser inferior a la fecha actual' });
     if(nuevaEntrada > nuevaSalida) return res.status(400).json({ error: 'La fecha de entrada no puede ser superiror a la de salida' });
     
   
@@ -81,8 +82,8 @@ async function addReservation(req, res) {
 // Cancelar una reserva
 async function cancelReservation(req, res) {
   try {
-    const { reservation_id } = req.body;
-    if (!reservation_id) {
+    const { reservation_id , price } = req.body;
+    if (!reservation_id || !price) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
@@ -93,6 +94,12 @@ async function cancelReservation(req, res) {
       return res.status(400).json({ error: 'La reserva ya estaba cancelada anteriormente' });
     }
 
+    let newPrice = parseFloat(price);
+    if(isNaN(newPrice) || newPrice < 0){
+      return res.status(400).json({ error: "El precio debe ser un número mayor o igual a 0" });
+    }
+
+    reservation.price = newPrice;
     reservation.cancelation_date = new Date();
     await reservation.save();
     

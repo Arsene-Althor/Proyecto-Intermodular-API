@@ -5,6 +5,7 @@ const session = require('express-session');
 const authRoutes = require('./routes/authRoutes');
 const stockRoutes = require('./routes/stockRoutes');
 const reservationRoutes = require('./routes/reservationRoutes');
+const userRoutes = require('./routes/userRoutes');
 const dbConnection = require('./db');
 require('dotenv').config();
 
@@ -28,7 +29,7 @@ app.use('/auth', authRoutes);
 app.use('/stock', stockRoutes);
 app.use('/reservation',reservationRoutes)
 //app.use('/room',roomRoutes)
-//app.use('/user',userRoutes)
+app.use('/user',userRoutes);
 
 
 // Puerto

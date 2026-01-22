@@ -6,7 +6,7 @@ const bcrypt = require('bcrypt');
 const regex = {
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   dni: /^[0-9]{8}[A-Z]$/, // 8 numeros + una letra mayuscula
-  password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*&])[A-Za-z\d@$!%*&]{8,}$/ //Al menos 1 mayuscula, minuscula, numero y caracter especial, minimo 8 caracteres
+  password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/ //Al menos 1 mayuscula, minuscula, numero y caracter especial, minimo 8 caracteres
 
 };
 
@@ -21,8 +21,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'El nombre del usuario es algo obligatorio'],
     trim: true,
-    maxlenght: [100, 'El nombre excede los 100 caracteres'],
-    minlenght: [1, 'El nombre no puede estar vacio']
+    maxlength: [100, 'El nombre excede los 100 caracteres'],
+    minlength: [1, 'El nombre no puede estar vacio']
   },
   surname:{
     type: String,
@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'La contraseña del usuario es algo obligatorio'],
     trim: true,
-    minlenght: [8, 'La contraseña debe tener mínimo 8 caracteres'],
+    minlength: [8, 'La contraseña debe tener mínimo 8 caracteres'],
     validate: { //Validador para formato de la contraseña
       validator: function (value){
         return regex.password.test(value);
@@ -74,8 +74,7 @@ const userSchema = new mongoose.Schema({
   },
   birthDate:{
     type: Date,
-    required: [true, 'La fecha de nacimiento del usuario es algo obligatorio'],
-    trim: true
+    required: [true, 'La fecha de nacimiento del usuario es algo obligatorio']
 
     //Falta validacion de fecha futura, validar minimo 18 años
   },
@@ -88,13 +87,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ["M", "F", "Other"],
     required: [true, 'El genero del usuario es algo obligatorio'],
-    trim: true
   },
   profileImage:{
     type: String,
     default: null
 
-    //FAlta validar el tipo de imagenes y el tamaño de estas
+    //Falta validar el tipo de imagenes y el tamaño de estas
   },
   role:{
     type: String,

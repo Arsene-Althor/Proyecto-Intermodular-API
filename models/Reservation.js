@@ -5,7 +5,8 @@ const reservationSchema = new mongoose.Schema({
   reservation_id:{
     type : String,
     required: [true, 'El ID de la reserva es obligatorio'],
-    trim: true
+    trim: true,
+    unique: true
   },  
   room_id:{
     type: String,
@@ -37,7 +38,13 @@ const reservationSchema = new mongoose.Schema({
         type: Date,
         default: null,
         trim: true
+    },
+    createdBy:{
+      type: String,
+      required: [true, 'El ID del crador es obligatorio'],
+      trim: true,
     }
+
 
 },{ timestamps: true }//Añadira dos campos automaticametne:
 //  Fecha de creación y de modificación "createdAt" y "updatedAt"

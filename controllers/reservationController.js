@@ -6,49 +6,72 @@ const mongoose = require('mongoose');
 //Fata validación para existencia de usuario y habitación
 async function addReservation(req, res) {
   try {
-    const { room_id, user_id, check_in, check_out } = req.body;
-    if (!room_id || !user_id || !check_in || !check_out) {
+    const { room_id, user_id, check_in, check_out, price } = req.body;
+    if (!room_id || !user_id || !check_in || !check_out || !price) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
-    const nuevaEntrada = new Date(check_in);
-    const nuevaSalida = new Date(check_out);
+    const precioNum = parseFloat(price);
+
+    if(isNaN(precioNum) || precioNum <= 0){
+      return res.status(400).json({ error: "El precio debe ser un número mayor que 0" });
+    }
+
+    let nuevaEntrada = new Date(check_in);
+    nuevaEntrada.setHours(12,0);
+
+    let nuevaSalida = new Date(check_out);
+    nuevaSalida.setHours(11,0);
+
+    let ayer = new Date();
+    ayer.setDate(ayer.getDate()-1);
+    ayer.setHours(12,0);
+   
     let new_id;
     let ultimo_id = await Reservation.findOne()
       .sort({ createdAt: -1 })
       .select('reservation_id');
 
+    if(nuevaEntrada < ayer) return res.status(400).json({ error: 'La fecha de entrada no puede ser inferior a la fecha actual' });
+    if(nuevaEntrada > nuevaSalida) return res.status(400).json({ error: 'La fecha de entrada no puede ser superiror a la de salida' });
+    
+  
+
     if(!ultimo_id){
+      // En caso de no tener ninguna reserva la creamos automaticamente con el primer id 
       new_id = "RSV-001"
-      const reservation = new Reservation({ reservation_id: new_id, room_id ,user_id, check_in, check_out });
+      const reservation = new Reservation({ reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida, price: precioNum });
       await reservation.save();
       return res.json(reservation)
     }else{
+      //Generamos el nuevo id de reserva
       let arr_id = ultimo_id.reservation_id.split("-");
       num_id = parseInt(arr_id[1])
       new_id = "RSV-" + String(num_id + 1).padStart(3, '0');
-      let reservations = await Reservation.find({room_id : room_id , cancelation_date: null });
-    if (reservations.length === 0) {
-      const reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in, check_out });
-      await reservation.save();
-      return res.json(reservation)
-    } else {
-      let correcto = true;
-      for(let r of reservations){
-        if (nuevaEntrada < r.check_out && nuevaSalida > r.check_in){
-          correcto = false;
-          break;
-        }
-      }
 
-      if(correcto){
-        reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in, check_out });
+      //Buscamos todas las reservas no canceladas de esa habitación para validar que no este ocupada
+      let reservations = await Reservation.find({room_id : room_id , cancelation_date: null });
+      if (reservations.length === 0) {
+        const reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida , price: precioNum });
         await reservation.save();
         return res.json(reservation)
-      }else{
-        return res.json({ error: 'La habitación ya se encuentra reservada'})
+      } else {
+        let correcto = true;
+        for(let r of reservations){
+          if (nuevaEntrada < r.check_out && nuevaSalida > r.check_in){
+            correcto = false;
+            break;
+          }
+        }
+
+        if(correcto){
+          let reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida , price: precioNum });
+          await reservation.save();
+          return res.json(reservation)
+        }else{
+          return res.status(400).json({ error: 'La habitación ya se encuentra reservada'})
+        }
       }
-    }
     }
     
   } catch (err) {
@@ -59,8 +82,8 @@ async function addReservation(req, res) {
 // Cancelar una reserva
 async function cancelReservation(req, res) {
   try {
-    const { reservation_id } = req.body;
-    if (!reservation_id) {
+    const { reservation_id , price } = req.body;
+    if (!reservation_id || !price) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
@@ -71,6 +94,12 @@ async function cancelReservation(req, res) {
       return res.status(400).json({ error: 'La reserva ya estaba cancelada anteriormente' });
     }
 
+    let newPrice = parseFloat(price);
+    if(isNaN(newPrice) || newPrice < 0){
+      return res.status(400).json({ error: "El precio debe ser un número mayor o igual a 0" });
+    }
+
+    reservation.price = newPrice;
     reservation.cancelation_date = new Date();
     await reservation.save();
     
@@ -102,10 +131,27 @@ async function getAllReservations(req, res) {
   }
 }
 
+async function getActiveReservations(req, res){
+  
+  try{
+    let hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const reservations = await Reservation.find({cancelation_date : null, check_out: { $gte: hoy }});
+    if(!reservations || reservations.length === 0){
+      return res.status(200).json([]);
+    }
+
+    res.json(reservations)
+
+  }catch(err){
+    res.status(500).json({ error: 'Error al listar las reservas', detalle: err.message });
+  }
+}
+
 // Modificar reserva
 async function updateReservation(req, res) {
   try {
-    const { reservation_id, room_id ,user_id, check_in, check_out  } = req.body;
+    const { reservation_id, room_id ,user_id, check_in, check_out, price } = req.body;
 
     const reservation = await Reservation.findOne({ reservation_id });
     if (!reservation){
@@ -117,6 +163,8 @@ async function updateReservation(req, res) {
     reservation.check_out = check_out;
     //Falta validación user existe
     reservation.user_id = user_id;
+    //Falta validación precio valido
+    reservation.price = price;
 
     await reservation.save();
     return res.json({ mensaje: 'Reserva modificada correctamente', reservation });
@@ -131,5 +179,6 @@ module.exports = {
   cancelReservation,
   getReservation,
   getAllReservations,
+  getActiveReservations,
   updateReservation
 };

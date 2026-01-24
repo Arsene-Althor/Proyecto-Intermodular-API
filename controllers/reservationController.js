@@ -1,20 +1,32 @@
 //Controlers para Reservas
 const Reservation = require('../models/Reservation');
+const User = require('../models/User');
+const Room = require('../models/Room');
 const mongoose = require('mongoose');
 
 // Añadir reserva
 //Fata validación para existencia de usuario y habitación
 async function addReservation(req, res) {
   try {
-    const { room_id, user_id, check_in, check_out, price } = req.body;
+    const { room_id, user_id, check_in, check_out, price} = req.body;
     if (!room_id || !user_id || !check_in || !check_out || !price) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
-    const precioNum = parseFloat(price);
+    const createdBy = req.user.user_id;
+
+    //Validaciones para datos introducidos
+    let user = await User.findOne({user_id});
+    if(!user) return res.status(400).json({error: 'El usuario introducido no exite'});
+
+    let room = await Room.findOne({room_id});
+    if(!room) return res.status(400).json({error: 'La habitación introducida no existe'});
+
+
+    const precioNum = Number.parseFloat(price).valueOf();
 
     if(isNaN(precioNum) || precioNum <= 0){
-      return res.status(400).json({ error: "El precio debe ser un número mayor que 0" });
+      return res.status(400).json(precioNum);
     }
 
     let nuevaEntrada = new Date(check_in);
@@ -26,56 +38,47 @@ async function addReservation(req, res) {
     let ayer = new Date();
     ayer.setDate(ayer.getDate()-1);
     ayer.setHours(12,0);
+
+    if(nuevaEntrada < ayer) return res.status(400).json({ error: 'La fecha de entrada no puede ser inferior a la fecha actual' });
+    if(nuevaEntrada >= nuevaSalida) return res.status(400).json({ error: 'La fecha de entrada no puede ser superiror a la de salida' });
    
     let new_id;
     let ultimo_id = await Reservation.findOne()
       .sort({ createdAt: -1 })
       .select('reservation_id');
 
-    if(nuevaEntrada < ayer) return res.status(400).json({ error: 'La fecha de entrada no puede ser inferior a la fecha actual' });
-    if(nuevaEntrada > nuevaSalida) return res.status(400).json({ error: 'La fecha de entrada no puede ser superiror a la de salida' });
-    
-  
-
     if(!ultimo_id){
       // En caso de no tener ninguna reserva la creamos automaticamente con el primer id 
       new_id = "RSV-001"
-      const reservation = new Reservation({ reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida, price: precioNum });
-      await reservation.save();
-      return res.json(reservation)
     }else{
       //Generamos el nuevo id de reserva
       let arr_id = ultimo_id.reservation_id.split("-");
       num_id = parseInt(arr_id[1])
       new_id = "RSV-" + String(num_id + 1).padStart(3, '0');
-
-      //Buscamos todas las reservas no canceladas de esa habitación para validar que no este ocupada
-      let reservations = await Reservation.find({room_id : room_id , cancelation_date: null });
-      if (reservations.length === 0) {
-        const reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida , price: precioNum });
-        await reservation.save();
-        return res.json(reservation)
-      } else {
-        let correcto = true;
-        for(let r of reservations){
+    }
+     //Buscamos todas las reservas no canceladas de esa habitación para validar que no este ocupada
+    let reservations = await Reservation.find({room_id : room_id , cancelation_date: null });
+    let correcto = true;
+    if (reservations.length != 0) {
+       for(let r of reservations){
           if (nuevaEntrada < r.check_out && nuevaSalida > r.check_in){
             correcto = false;
             break;
           }
         }
+    }
 
-        if(correcto){
-          let reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida , price: precioNum });
+    if(correcto){
+          let reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida , price: precioNum,createdBy });
           await reservation.save();
           return res.json(reservation)
-        }else{
+    }else{
           return res.status(400).json({ error: 'La habitación ya se encuentra reservada'})
-        }
-      }
     }
-    
+
   } catch (err) {
-    res.status(500).json({ error: 'Error al insertar reserva', detalle: err.message });
+    console.log(err);
+    res.status(500).json({ error: 'Error al insertar reserva', detalle: err.message, erroresValidacion: err.errors });
   }
 }
 
@@ -105,7 +108,7 @@ async function cancelReservation(req, res) {
     
     res.json({ mensaje: 'Cancelada correctamente', reservation});
   } catch (err) {
-    res.json({ mensaje: 'Reserva cancelada correctamente', reservation });
+    res.status(500).json({ error: 'Error al cancelar la reserva ', detalle: err.message });
   }
 }
 
@@ -172,6 +175,37 @@ async function updateReservation(req, res) {
   } catch (err) {
     res.status(500).json({ error: 'Error al realizar la actualización ', detalle: err.message });
   }
+}
+
+//Funcion para calcularPrecio pendiente utilizar
+async function calculatePrice(user_id,room_id,check_in, check_out){
+  if(!user_id || !room_id || !check_in || !check_out) return { error: 'Faltan datos'};
+
+  //Validamos que los datos sean correctos
+
+  const user = await User.findOne({user_id});
+  const room = await Room.findOne({room_id});
+
+  if(!user || !room) return { error: 'Los datos introducidos no son validos'};
+
+  let nuevaEntrada = new Date(check_in);
+  nuevaEntrada.setHours(12,0,0,0);
+
+  let nuevaSalida = new Date(check_out);
+  nuevaSalida.setHours(11,0,0,0);
+
+  const diferencia = nuevaSalida - nuevaEntrada;
+
+  const dias = Math.ceil(diferencia / (1000 * 60 * 60 * 24));
+
+  let precioReserva = dias * room.price_per_night;
+
+  if(user.isVIP == true){
+    let descuento = precioReserva * 0.20;
+    precioReserva = precioReserva - descuento;
+  }
+  return precioReserva;
+
 }
 
 module.exports = {

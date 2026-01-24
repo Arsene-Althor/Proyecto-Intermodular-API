@@ -3,25 +3,59 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-
+/**
+ * Login del usuario
+ * POST /api/auth/login
+ * Body: { email, password }
+ */
 async function login(req, res) {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ error: 'Credenciales inválidas' });
+
+    if (!email || !password){
+      return res.status(400).json({
+        error: 'Email y contraseña son obligatorios'
+      });
+    }
+
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user){
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
     
     const esCorrecta = await bcrypt.compare(password, user.password);
-    if (!esCorrecta) return res.status(401).json({ error: 'Credenciales inválidas' });
+
+    if (!esCorrecta) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    //Validamos si el usuario esta activo
+    if (!user.isActive){
+      return res.status(403).json({
+        error: 'Usuario desactivado'
+      });
+    }
 
     const token = jwt.sign(
-      { user_id: user._id, email: user.email },
+      { user_id: user._id,
+        email: user.email,
+        role: user.role,
+        isVIP: user.isVIP
+      },
       process.env.JWT_SECRET, 
       { expiresIn: '24h' }
     );
 
-    res.json({
+    return res.status(200).json({
       mensaje: '¡Bienvenido!',
-      token: token
+      token: token,
+      user: {
+        user_id: user.user_id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
     });
 
   } catch (err) {

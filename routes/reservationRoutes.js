@@ -9,7 +9,7 @@ const { requireLogin, requireRole } = require('../middleware/authMiddleware');
 
 //Faltan Roles
 // Añadir Reserva
-router.post('/add', reservationController.addReservation);
+router.post('/add',requireLogin, reservationController.addReservation);
 
 // Eliminar y modificar reserva
 router.post('/cancel', reservationController.cancelReservation);

@@ -8,12 +8,12 @@ const {requireLogin, requireRole, requireOwnerOrAdmin} = require('../middleware/
 router.post('/register', registroUser);
 
 //Protegidas (requiere que se logueen)
-router.post('/add', requireLogin, requireRole('employee'), addEmployee); //POST /api/users/add (solo admin)
+router.post('/add', requireLogin, requireRole(['employee','admin','client']), addEmployee); //POST /api/users/add (solo admin)
 
 router.get('/get', requireLogin, getAllUsers); //GET /api/users/get (solo usuarios logueados)
 
 router.patch('/modify/:userId', requireLogin, requireOwnerOrAdmin, modifyUser); // PATCH /api/users/modif/:userId
 
-router.delete('/remove', requireLogin, requireRole('admin'), removeUsers); // DELETE /api/users/remove/:userId (solo admin)
+router.delete('/remove', requireLogin, requireRole(['admin']), removeUsers); // DELETE /api/users/remove/:userId (solo admin)
 
 module.exports = router;

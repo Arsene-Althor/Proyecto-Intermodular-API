@@ -16,7 +16,7 @@ async function generateUserId(role) {
     }
 
     //Busca el ultimo usuario que tenga el prefijo asignado
-    const lastUser = await User.findOne({user_id: new RegExp(`^${prefix}-`)})
+    const lastUser = await User.findOne({user_id: new RegExp(`^${prefix}`)})
         .sort({createdAt: -1})
         .select('user_id');
 

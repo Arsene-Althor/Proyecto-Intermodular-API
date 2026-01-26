@@ -8,15 +8,11 @@ async function generateUserId(role) {
     let prefix;
 
     if (role == 'client'){
-        prefix = 'Client';
+        prefix = 'CLI-';
 
-    } else if (role == 'employee'){
-        prefix = 'Employ';
+    } else{
+        prefix = 'EMP-';
 
-    } else if (role == 'admin'){
-        prefix = 'Admin';
-    } else {
-        prefix = 'User';
     }
 
     //Busca el ultimo usuario que tenga el prefijo asignado
@@ -26,7 +22,7 @@ async function generateUserId(role) {
 
     //Si no hay último usuario empezara poo 001
     if(!lastUser){
-        return `${prefix}-001`
+        return `${prefix}00001`
     }
 
     //Extraemos numero del ultimo user_id
@@ -35,7 +31,7 @@ async function generateUserId(role) {
     const num_id = parseInt(arr_id[1]);
 
     //Generar nuevo ID con número +1
-    const new_id = `${prefix}-${String(num_id + 1).padStart(3, '0')}`;
+    const new_id = `${prefix}${String(num_id + 1).padStart(5, '0')}`;
 
     return new_id
 

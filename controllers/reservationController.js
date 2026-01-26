@@ -80,12 +80,12 @@ async function addReservation(req, res) {
 
     if(!ultimo_id){
       // En caso de no tener ninguna reserva la creamos automaticamente con el primer id 
-      new_id = "RSV-001"
+      new_id = "RSV-00001"
     }else{
       //Generamos el nuevo id de reserva
       let arr_id = ultimo_id.reservation_id.split("-");
       num_id = parseInt(arr_id[1])
-      new_id = "RSV-" + String(num_id + 1).padStart(3, '0');
+      new_id = "RSV-" + String(num_id + 1).padStart(5, '0');
     }
      //Llamamaos al metodo para comprobar habitaciones
     let verif = await checkOcupation(check_in,check_out,room_id);

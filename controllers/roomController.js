@@ -16,6 +16,7 @@
    ===================================================== */
 const Room = require('../models/Room')
 const mongoose = require('mongoose');
+const Reservation = require("../models/Reservation");
 
 /* =====================================================
               OBTENER HABITACION POR ID
@@ -145,9 +146,57 @@ async function deleteRoom(req, res) {
   }
 };
 
+// GET /api/rooms/available?checkIn=2026-02-24&checkOut=2026-02-25&guests=1
+async function getAvailableRooms(req, res) {
+  try {
+    const { checkIn, checkOut, guests = 1 } = req.query;
+
+    if (!checkIn || !checkOut) {
+      return res.status(400).json({ error: "Faltan checkIn o checkOut" });
+    }
+
+    let ci = new Date(checkIn);
+    let co = new Date(checkOut);
+    ci.setHours(12,0,0,0);
+    co.setHours(11,0,0,0);
+
+    if (isNaN(ci.getTime()) || isNaN(co.getTime())) {
+      return res.status(400).json({ error: "Formato de fecha inválido (usa YYYY-MM-DD)" });
+    }
+
+    if (ci >= co) {
+      return res.status(400).json({ error: "checkIn debe ser anterior a checkOut" });
+    }
+
+    // 1) habitaciones que cumplen capacidad
+    const rooms = await Room.find({ max_occupancy: { $gte: Number(guests) } });
+
+    // 2) reservas que se solapan con el rango pedido
+    const overlappingReservations = await Reservation.find({
+      check_in: { $lt: co },
+      check_out: { $gt: ci }
+    }).select({ room_id: 1, _id: 0 });
+
+    const occupiedRoomIds = new Set(overlappingReservations.map(r => String(r.room_id)));
+
+    // 3) filtra habitaciones libres
+    const available = rooms.filter(r => !occupiedRoomIds.has(String(r.room_id)));
+
+    return res.json(available);
+  }catch (err) {
+  console.error("❌ getAvailableRooms ERROR:", err);
+  return res.status(500).json({
+    error: "Error buscando disponibilidad",
+    detail: err.message,
+    stack: err.stack
+  });
+}
+}
+
 module.exports = {
   getAllRooms,
   getRoom,
   createRoom,
-  deleteRoom
+  deleteRoom,
+  getAvailableRooms
 }

@@ -4,6 +4,44 @@ const User = require('../models/User');
 const Room = require('../models/Room');
 const mongoose = require('mongoose');
 
+async function checkOcupation(check_in,check_out,room_id,reservation_id){
+  //Las fechas de entrada y salida siempre son de 12 a 11
+  let nuevaEntrada = new Date(check_in);
+  nuevaEntrada.setHours(12,0,0,0);
+
+  let nuevaSalida = new Date(check_out);
+  nuevaSalida.setHours(11,0,0,0);
+
+  //Permitiremos reservas el mismo dia que entrada o en su defecto antes de las 12 del dia actual
+  let ayer = new Date();
+  ayer.setDate(ayer.getDate()-1);
+  ayer.setHours(12,0);
+
+  if(nuevaEntrada < ayer) return { error: 'La fecha de entrada no puede ser inferior a la fecha actual', respuesta: false};
+  if(nuevaEntrada >= nuevaSalida) return { error: 'La fecha de entrada no puede ser superiror a la de salida' , respuesta: false };
+
+  //Comprobamos que la habitación no este ya reservada o cancelada exceptuando la misma habitación
+  //Ya que este metodo lo vamos a utilizar para actualizar y para insertar
+  let reservations = await Reservation.find({room_id : room_id , cancelation_date: null });
+    let correcto = true;
+    if (reservations.length != 0) {
+       for(let r of reservations){
+          if(r.reservation_id != reservation_id){
+            if (nuevaEntrada < r.check_out && nuevaSalida > r.check_in){
+              correcto = false;
+              break;
+            }
+          }
+        }
+    }
+
+    if(correcto){
+          return { error: 'correcto', respuesta: true};
+    }else{
+          return { error: 'La habitación ya se encuentra ocupada', respuesta: false};
+    }
+
+}
 // Añadir reserva
 //Fata validación para existencia de usuario y habitación
 async function addReservation(req, res) {
@@ -35,13 +73,6 @@ async function addReservation(req, res) {
     let nuevaSalida = new Date(check_out);
     nuevaSalida.setHours(11,0);
 
-    let ayer = new Date();
-    ayer.setDate(ayer.getDate()-1);
-    ayer.setHours(12,0);
-
-    if(nuevaEntrada < ayer) return res.status(400).json({ error: 'La fecha de entrada no puede ser inferior a la fecha actual' });
-    if(nuevaEntrada >= nuevaSalida) return res.status(400).json({ error: 'La fecha de entrada no puede ser superiror a la de salida' });
-   
     let new_id;
     let ultimo_id = await Reservation.findOne()
       .sort({ createdAt: -1 })
@@ -49,31 +80,22 @@ async function addReservation(req, res) {
 
     if(!ultimo_id){
       // En caso de no tener ninguna reserva la creamos automaticamente con el primer id 
-      new_id = "RSV-001"
+      new_id = "RSV-00001"
     }else{
       //Generamos el nuevo id de reserva
       let arr_id = ultimo_id.reservation_id.split("-");
       num_id = parseInt(arr_id[1])
-      new_id = "RSV-" + String(num_id + 1).padStart(3, '0');
+      new_id = "RSV-" + String(num_id + 1).padStart(5, '0');
     }
-     //Buscamos todas las reservas no canceladas de esa habitación para validar que no este ocupada
-    let reservations = await Reservation.find({room_id : room_id , cancelation_date: null });
-    let correcto = true;
-    if (reservations.length != 0) {
-       for(let r of reservations){
-          if (nuevaEntrada < r.check_out && nuevaSalida > r.check_in){
-            correcto = false;
-            break;
-          }
-        }
-    }
-
-    if(correcto){
-          let reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida , price: precioNum,createdBy });
+     //Llamamaos al metodo para comprobar habitaciones
+    let verif = await checkOcupation(check_in,check_out,room_id);
+    
+    if(verif.respuesta){
+      let reservation = new Reservation({reservation_id: new_id, room_id ,user_id, check_in: nuevaEntrada, check_out: nuevaSalida , price: precioNum,createdBy });
           await reservation.save();
           return res.json(reservation)
     }else{
-          return res.status(400).json({ error: 'La habitación ya se encuentra reservada'})
+          return res.status(400).json({ error: verif.error})
     }
 
   } catch (err) {
@@ -150,6 +172,17 @@ async function getActiveReservations(req, res){
     res.status(500).json({ error: 'Error al listar las reservas', detalle: err.message });
   }
 }
+//Obtener las reservas del usuario logeado
+async function getMine(req, res){
+    try {
+    const user_id = req.user.user_id;
+    const reservations = await Reservation.find({user_id})
+    if (!reservations) return res.status(404).json({ error: 'El usuario no dispone de reservas' });
+    res.json(reservations);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener reservas', detalle: err.message });
+  }
+}
 
 // Modificar reserva
 async function updateReservation(req, res) {
@@ -157,20 +190,33 @@ async function updateReservation(req, res) {
     const { reservation_id, room_id ,user_id, check_in, check_out, price } = req.body;
 
     const reservation = await Reservation.findOne({ reservation_id });
-    if (!reservation){
-       return res.status(404).json({ error: 'Reserva no encontrada' });
-    }
-    //Falta validación room exite y no esta ocupada
-    reservation.room_id = room_id;
-    reservation.check_in = check_in;
-    reservation.check_out = check_out;
-    //Falta validación user existe
-    reservation.user_id = user_id;
-    //Falta validación precio valido
-    reservation.price = price;
+    if (!reservation) return res.status(404).json({ error: 'Reserva no encontrada' });
 
-    await reservation.save();
-    return res.json({ mensaje: 'Reserva modificada correctamente', reservation });
+    let user = await User.findOne({user_id});
+    if(!user) return res.status(400).json({error: 'El usuario introducido no exite'});
+
+    let room = await Room.findOne({room_id});
+    if(!room) return res.status(400).json({error: 'La habitación introducida no existe'});
+
+    const precioNum = Number.parseFloat(price).valueOf();
+
+    if(isNaN(precioNum) || precioNum <= 0){
+      return res.status(400).json(precioNum);
+    }
+    //Validación habitacion no ocupada
+    let verif = await checkOcupation(check_in,check_out,room_id,reservation_id);
+
+    if(verif.respuesta){
+      reservation.room_id = room_id;
+      reservation.check_in = check_in;
+      reservation.check_out = check_out;
+      reservation.user_id = user_id;
+      reservation.price = precioNum;
+      await reservation.save();
+      return res.json({ mensaje: 'Reserva modificada correctamente', reservation });
+    }else{
+      return res.status(400).json({ error: verif.error})
+    }
 
   } catch (err) {
     res.status(500).json({ error: 'Error al realizar la actualización ', detalle: err.message });
@@ -212,6 +258,7 @@ module.exports = {
   addReservation,
   cancelReservation,
   getReservation,
+  getMine,
   getAllReservations,
   getActiveReservations,
   updateReservation

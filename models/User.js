@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema({
   user_id:{
     type: String,
     unique: true,
+    minlength: [9, 'El ID debe tener al menos 9 caracteres'],
+    match: [/^(CLI|EMP)-[0-9]{5}$/, 'El formato debe ser CLI- o EMP- seguido de 5 números (Ej: EMP-00001)'],
     immutable: true
   },
   name:{

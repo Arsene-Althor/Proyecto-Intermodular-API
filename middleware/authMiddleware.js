@@ -34,12 +34,13 @@ function requireLogin(req, res, next) {
  * Middleware para validar que el usuario tiene un role específico
  * Uso: router.patch('/modif/:userId', requireLogin, requireRole('admin'), modifyUser);
  */
-function requireRole(requiredRole){
+function requireRole(requiredRoles){
   return (req, res, next) => {
     //req.user viene del middleware requireLogin
-    if(req.user.role !== requiredRole){
+    const allowedroles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+    if(!allowedroles.includes(req.user.role)){
       return res.status(403).json({
-        error: `No tienes permisos. Se requiere role: ${requiredRole}`
+        error: `No tienes permisos. Se requiere role: ${allowedroles}`
       });
     }
 

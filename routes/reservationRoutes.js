@@ -5,17 +5,20 @@ const reservationController = require('../controllers/reservationController');
 const { requireLogin, requireRole } = require('../middleware/authMiddleware');
 
 // Todas requieren estar autenticado
-//router.use(requireLogin);
+router.use(requireLogin);
 
 //Faltan Roles
 // Añadir Reserva
-router.post('/add',requireLogin, reservationController.addReservation);
-
+router.post('/add', reservationController.addReservation);
 // Eliminar y modificar reserva
 router.post('/cancel', reservationController.cancelReservation);
 router.put('/update', reservationController.updateReservation);
 
 // Obtener reservas
+router.use('/mine',reservationController.getMine)
+
+router.use(requireRole(['admin','employee']));
+
 router.get('/one',reservationController.getReservation);
 router.get('/all', reservationController.getAllReservations);
 router.get('/allActive', reservationController.getActiveReservations);

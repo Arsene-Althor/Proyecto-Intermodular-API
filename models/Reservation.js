@@ -37,7 +37,7 @@ const reservationSchema = new mongoose.Schema({
     price:{
       type: Number,
       required: [true, 'El precio es obligatorio'],
-      min:[0.01 , 'El precio debe ser mayor que 0']
+      min:[0 , 'El precio debe ser mayor o igual 0']
       
     },
     cancelation_date: {

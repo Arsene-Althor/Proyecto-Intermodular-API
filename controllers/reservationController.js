@@ -215,6 +215,9 @@ async function updateReservation(req, res) {
 
     if(reservation.check_in <= hoy || !check_in){
       nuevaEntrada = reservation.check_in;
+      if(nuevaSalida < hoy){
+        return res.status(400).json({error: 'La reserva esta vencida'});
+      }
     }
 
     //Validación habitacion no ocupada

@@ -12,14 +12,6 @@ async function checkOcupation(check_in,check_out,room_id,reservation_id){
   let nuevaSalida = new Date(check_out);
   nuevaSalida.setHours(11,0,0,0);
 
-  //Permitiremos reservas el mismo dia que entrada o en su defecto antes de las 12 del dia actual
-  let ayer = new Date();
-  ayer.setDate(ayer.getDate()-1);
-  ayer.setHours(12,0);
-
-  if(nuevaEntrada < ayer) return { error: 'La fecha de entrada no puede ser inferior a la fecha actual', respuesta: false};
-  if(nuevaEntrada >= nuevaSalida) return { error: 'La fecha de entrada no puede ser superiror a la de salida' , respuesta: false };
-
   //Comprobamos que la habitación no este ya reservada o cancelada exceptuando la misma habitación
   //Ya que este metodo lo vamos a utilizar para actualizar y para insertar
   let reservations = await Reservation.find({room_id : room_id , cancelation_date: null });
@@ -73,6 +65,14 @@ async function addReservation(req, res) {
     let nuevaSalida = new Date(check_out);
     nuevaSalida.setHours(11,0);
 
+    //Permitiremos reservas el mismo dia que entrada o en su defecto antes de las 12 del dia actual
+    let ayer = new Date();
+    ayer.setDate(ayer.getDate()-1);
+    ayer.setHours(12,0);
+
+    if(nuevaEntrada < ayer) return { error: 'La fecha de entrada no puede ser inferior a la fecha actual', respuesta: false};
+    if(nuevaEntrada >= nuevaSalida) return { error: 'La fecha de entrada no puede ser superiror a la de salida' , respuesta: false };
+
     let new_id;
     let ultimo_id = await Reservation.findOne()
       .sort({ createdAt: -1 })
@@ -108,7 +108,7 @@ async function addReservation(req, res) {
 async function cancelReservation(req, res) {
   try {
     const { reservation_id , price } = req.body;
-    if (!reservation_id || !price) {
+    if (!reservation_id || price === undefined) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
@@ -191,6 +191,7 @@ async function updateReservation(req, res) {
 
     const reservation = await Reservation.findOne({ reservation_id });
     if (!reservation) return res.status(404).json({ error: 'Reserva no encontrada' });
+    if(reservation.cancelation_date!= null) return res.status(404).json({ error: 'No es posible modificar reservas canceladas' });
 
     let user = await User.findOne({user_id});
     if(!user) return res.status(400).json({error: 'El usuario introducido no exite'});
@@ -203,13 +204,29 @@ async function updateReservation(req, res) {
     if(isNaN(precioNum) || precioNum <= 0){
       return res.status(400).json(precioNum);
     }
+    //Falta validación para que no se pueda modifcar la fecha de entrada una vez pasada la fecha de entrada
+    let nuevaEntrada = new Date(check_in);
+      nuevaEntrada.setHours(12,0,0,0);
+
+    let nuevaSalida = new Date(check_out);
+    nuevaSalida.setHours(11,0,0,0);
+
+    let hoy = new Date();
+
+    if(reservation.check_in <= hoy || !check_in){
+      nuevaEntrada = reservation.check_in;
+      if(nuevaSalida < hoy){
+        return res.status(400).json({error: 'La reserva esta vencida'});
+      }
+    }
+
     //Validación habitacion no ocupada
     let verif = await checkOcupation(check_in,check_out,room_id,reservation_id);
 
     if(verif.respuesta){
       reservation.room_id = room_id;
-      reservation.check_in = check_in;
-      reservation.check_out = check_out;
+      reservation.check_in = nuevaEntrada;
+      reservation.check_out = nuevaSalida;
       reservation.user_id = user_id;
       reservation.price = precioNum;
       await reservation.save();
@@ -224,33 +241,41 @@ async function updateReservation(req, res) {
 }
 
 //Funcion para calcularPrecio pendiente utilizar
-async function calculatePrice(user_id,room_id,check_in, check_out){
-  if(!user_id || !room_id || !check_in || !check_out) return { error: 'Faltan datos'};
+async function calculatePrice(req,res){
+  try{
+    const { room_id ,user_id, check_in, check_out } = req.body;
+    if(!user_id || !room_id || !check_in || !check_out) return res.status(404).json({ error: 'Faltan datos'});
 
-  //Validamos que los datos sean correctos
+    //Validamos que los datos sean correctos
 
-  const user = await User.findOne({user_id});
-  const room = await Room.findOne({room_id});
+    const user = await User.findOne({user_id});
+    const room = await Room.findOne({room_id});
 
-  if(!user || !room) return { error: 'Los datos introducidos no son validos'};
+    if(!user || !room) return res.status(404).json({ error: 'Los datos introducidos no son validos'});
 
-  let nuevaEntrada = new Date(check_in);
-  nuevaEntrada.setHours(12,0,0,0);
+    let nuevaEntrada = new Date(check_in);
+    nuevaEntrada.setHours(12,0,0,0);
 
-  let nuevaSalida = new Date(check_out);
-  nuevaSalida.setHours(11,0,0,0);
+    let nuevaSalida = new Date(check_out);
+    nuevaSalida.setHours(11,0,0,0);
 
-  const diferencia = nuevaSalida - nuevaEntrada;
+    const diferencia = nuevaSalida - nuevaEntrada;
 
-  const dias = Math.ceil(diferencia / (1000 * 60 * 60 * 24));
+    const dias = Math.ceil(diferencia / (1000 * 60 * 60 * 24));
 
-  let precioReserva = dias * room.price_per_night;
+    let precioReserva = dias * room.price_per_night;
 
-  if(user.isVIP == true){
-    let descuento = precioReserva * 0.20;
-    precioReserva = precioReserva - descuento;
+    /*
+    if(user.isVIP == true){
+      let descuento = precioReserva * 0.20;
+      precioReserva = precioReserva - descuento;
+    }
+    */
+    return res.json({precio: precioReserva})
+
+  }catch(err){
+    res.status(500).json({ error: 'Error al obtener precio', detalle: err.message });
   }
-  return precioReserva;
 
 }
 
@@ -261,5 +286,6 @@ module.exports = {
   getMine,
   getAllReservations,
   getActiveReservations,
-  updateReservation
+  updateReservation,
+  calculatePrice
 };

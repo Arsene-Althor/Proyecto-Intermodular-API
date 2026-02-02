@@ -106,6 +106,12 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  discount:{
+    type: Number,
+    minimum: [0, 'El descuento no puede ser negativo'],
+    maximum: [0.5, 'El descuento máximo permitido es del 50% (0.5)'],
+    default: 0.00
+  },
   isActive:{
     type: Boolean,
     default: true

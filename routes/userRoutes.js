@@ -1,7 +1,7 @@
 //routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
-const {registroUser, addEmployee, getAllUsers, removeUsers, modifyUser} = require ('../controllers/userController.js');
+const {registroUser, addEmployee, getAllUsers, removeUsers, modifyUser, updateDiscount} = require ('../controllers/userController.js');
 const {requireLogin, requireRole, requireOwnerOrAdmin} = require('../middleware/authMiddleware.js');
 
 //Ruta publica, no necesita autenticar
@@ -14,6 +14,8 @@ router.get('/get', requireLogin, getAllUsers); //GET /api/users/get (solo usuari
 
 router.patch('/modify/:userId', requireLogin, requireOwnerOrAdmin, modifyUser); // PATCH /api/users/modif/:userId
 
-router.delete('/remove', requireLogin, requireRole(['admin']), removeUsers); // DELETE /api/users/remove/:userId (solo admin)
+router.delete('/remove/:userId', requireLogin, requireRole(['admin', 'employee']), removeUsers); // DELETE /api/users/remove/:userId
+
+router.patch('/update/:userId', requireLogin, requireRole(['admin', 'employee']), updateDiscount); // PATCH /api/users/update/:userId
 
 module.exports = router;

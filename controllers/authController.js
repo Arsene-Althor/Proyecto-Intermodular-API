@@ -63,4 +63,20 @@ async function login(req, res) {
   }
 }
 
-module.exports = { login } ;
+async function logout(req, res){
+  try{
+    //Borramos la sesión del servidor
+    req.session.destroy((err) => {
+
+      if (err){
+        return res.status(500).json({error: 'No se pudo cerrar la sesión'});
+      }
+
+      return res.status(200).json({message: 'Sesión cerrada correctamente'});
+    });
+  } catch (err){
+    res.status(500).json({error: 'Error al cerrar sesión', detalle: err.message});
+  }
+}
+
+module.exports = { login, logout};

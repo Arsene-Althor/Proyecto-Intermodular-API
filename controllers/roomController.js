@@ -21,7 +21,8 @@ const Reservation = require("../models/Reservation");
 /* =====================================================
               OBTENER HABITACION POR ID
    ===================================================== */
-async function getRoom(req, res) {
+
+   async function getRoom(req, res) {
   try {
     const { room_id } = req.body;
     const room = await Room.findOne({ room_id })
@@ -35,7 +36,8 @@ async function getRoom(req, res) {
 /* =====================================================
               OBTENER TODAS LAS HABITACIONES
    ===================================================== */
-async function getAllRooms(req, res) {
+
+   async function getAllRooms(req, res) {
   try {
     const room = await Room.find();
     res.json(room);
@@ -47,7 +49,8 @@ async function getAllRooms(req, res) {
 /* =====================================================
               CREAR UNA NUEVA HABITACIÓN
    ===================================================== */
-async function createRoom(req, res) {
+
+   async function createRoom(req, res) {
   try {
     const {
       room_id,
@@ -145,52 +148,118 @@ async function deleteRoom(req, res) {
     });
   }
 };
+/* =====================================================
+          HABITACIONES DISPONIBLES POR FECHA
+   ===================================================== */
 
-// GET /api/rooms/available?checkIn=2026-02-24&checkOut=2026-02-25&guests=1
-async function getAvailableRooms(req, res) {
+   async function getAvailableRooms(req, res) {
   try {
+    console.log("QUERY RAW:", req.query); //prueba
+
     const { checkIn, checkOut, guests = 1 } = req.query;
 
     if (!checkIn || !checkOut) {
       return res.status(400).json({ error: "Faltan checkIn o checkOut" });
     }
 
-    let ci = new Date(checkIn);
-    let co = new Date(checkOut);
-    ci.setHours(12,0,0,0);
-    co.setHours(11,0,0,0);
+    const ci = parseYMD(checkIn);
+    const co = parseYMD(checkOut);
+
+    console.log("PARSED ci/co:", ci.toISOString(), co.toISOString()); //prueba
 
     if (isNaN(ci.getTime()) || isNaN(co.getTime())) {
       return res.status(400).json({ error: "Formato de fecha inválido (usa YYYY-MM-DD)" });
     }
-
     if (ci >= co) {
       return res.status(400).json({ error: "checkIn debe ser anterior a checkOut" });
     }
 
-    // 1) habitaciones que cumplen capacidad
-    const rooms = await Room.find({ max_occupancy: { $gte: Number(guests) } });
-
-    // 2) reservas que se solapan con el rango pedido
+    // Reservas solapadas NO canceladas (campo real: cancelation_date)
     const overlappingReservations = await Reservation.find({
+      cancelation_date: null,
       check_in: { $lt: co },
       check_out: { $gt: ci }
     }).select({ room_id: 1, _id: 0 });
 
-    const occupiedRoomIds = new Set(overlappingReservations.map(r => String(r.room_id)));
+    const occupiedIds = overlappingReservations.map(r => String(r.room_id).trim());
 
-    // 3) filtra habitaciones libres
-    const available = rooms.filter(r => !occupiedRoomIds.has(String(r.room_id)));
+    const available = await Room.find({
+      max_occupancy: { $gte: Number(guests) },
+      room_id: { $nin: occupiedIds }
+    });
 
     return res.json(available);
-  }catch (err) {
-  console.error("❌ getAvailableRooms ERROR:", err);
-  return res.status(500).json({
-    error: "Error buscando disponibilidad",
-    detail: err.message,
-    stack: err.stack
-  });
+  } catch (err) {
+    console.error("❌ getAvailableRooms ERROR:", err);
+    return res.status(500).json({ error: "Error buscando disponibilidad", detail: err.message });
+  }
 }
+
+function parseYMD(s) {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0)); // UTC 00:00
+}
+
+/* =====================================================
+                  MODIFICAR HABITACIÓN
+   ===================================================== */
+
+async function updateRoom(req, res) {
+  try {
+    console.log("BODY UPDATE:", req.body);
+
+    const { room_id } = req.body;
+    if (!room_id) return res.status(400).json({ message: "room_id obligatorio" });
+
+    // Whitelist (porque additionalProperties:false)
+    const data = {
+      type: req.body.type,
+      description: req.body.description,
+      image: req.body.image,
+      price_per_night: req.body.price_per_night,
+      rate: req.body.rate,
+      max_occupancy: req.body.max_occupancy,
+      isAvailable: req.body.isAvailable,
+    };
+
+    // Limpia undefined
+    Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
+
+    // Normaliza strings
+    if (data.type) data.type = String(data.type).trim();
+    if (data.description) data.description = String(data.description).trim();
+    if (data.image) data.image = String(data.image).trim();
+
+    // Enum estricto
+    const allowedTypes = ["Individual", "Doble", "Suite"];
+    if (data.type && !allowedTypes.includes(data.type)) {
+      return res.status(400).json({ message: `type inválido. Usa: ${allowedTypes.join(", ")}` });
+    }
+
+    // Tipos (IMPORTANTE)
+    if (data.price_per_night !== undefined) data.price_per_night = Number(data.price_per_night);
+    if (data.rate !== undefined) data.rate = Number(data.rate);
+
+    if (data.max_occupancy !== undefined) {
+      data.max_occupancy = parseInt(data.max_occupancy, 10); // 👈 int sí o sí
+    }
+
+    if (data.isAvailable !== undefined) data.isAvailable = Boolean(data.isAvailable);
+
+    const updated = await Room.findOneAndUpdate(
+      { room_id: String(room_id).trim() },
+      { $set: data },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) return res.status(404).json({ message: "Habitación no encontrada" });
+
+    return res.json({ message: "Habitación actualizada", room: updated });
+
+  } catch (error) {
+    console.error("UPDATE ERROR FULL:", JSON.stringify(error, null, 2));
+    return res.status(500).json({ error: "Error al actualizar", detalle: error.message });
+  }
 }
 
 module.exports = {
@@ -198,5 +267,6 @@ module.exports = {
   getRoom,
   createRoom,
   deleteRoom,
-  getAvailableRooms
+  getAvailableRooms,
+  updateRoom
 }

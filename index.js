@@ -7,6 +7,7 @@ const reservationRoutes = require('./routes/reservationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const roomRoutes = require('./routes/roomRoutes')
 const dbConnection = require('./db');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -32,6 +33,8 @@ app.use('/user',userRoutes);
 app.use('/room',roomRoutes) //RUTAS DEFINIDAS Y FUNCIONALES, FALTAN DEFINIR BIEN ROLES
 //app.use('/user',userRoutes)
 
+//Multer para subida de imagenes
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Puerto
 const PORT = process.env.PORT || 3000;

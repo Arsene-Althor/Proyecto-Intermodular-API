@@ -99,6 +99,10 @@ async function registroUser(req, res){
     //Generamos el user_id de manerra automatica
     const userID = await generateUserId('client');
 
+    let imagePath = null;
+    if (req.file){
+        imagePath = req.file.path.replace(/\\/g, "/");
+    }
 
     //Cogemos los datos ingresados por el usuario para luego guardar
     const newUser = new User({
@@ -111,7 +115,8 @@ async function registroUser(req, res){
         birthDate: new Date(birthDate),
         gender,
         city,
-        role: 'client'
+        role: 'client',
+        profileImage: imagePath
     });
 
     //Guardar en mongo
@@ -179,7 +184,7 @@ async function addEmployee(req, res){
     }
 
     //Solo permitimos crear 'employee' o 'admin'
-    if(role !== 'employee' && role !== 'admin'){
+    if(role !== 'employee' && role !== 'admin' && role !== 'client'){
         return res.status(400).json({error: 'Desde esta aplicaion solo se puede crear o Empleados o Administradores.'});
     }
 
@@ -214,6 +219,12 @@ async function addEmployee(req, res){
     //Generamos el user_id de manerra automatica
     const userID = await generateUserId(role);
 
+    //Si Multer guardó una imagen, req.file existirá.
+    let imagePath = null;
+    if (req.file){
+        imagePath = req.file.path.replace(/\\/g, "/");
+    }
+
 
     //Cogemos los datos ingresados por el usuario para luego guardar
     const newUser = new User({
@@ -226,7 +237,8 @@ async function addEmployee(req, res){
         birthDate: new Date(birthDate),
         gender,
         city,
-        role: role
+        role: role,
+        profileImage: imagePath
     });
 
     //Guardar en mongo
@@ -269,13 +281,17 @@ async function modifyUser(req, res){
         //Comprobamos si existe
         const userExists = await User.findOne({user_id: userId});
 
+        if(req.file){
+            updates.profileImage= req.file.path.replace(/\\/g, "/");
+        }
+
         if (!userExists){
             return res.status(404).json({error: 'Usuario no encontrado'});
         }
 
         //Implementamos medidas para evitar que se borre el ID o el rol del usuario
         if (updates.user_id) delete updates.user_id;
-        
+
         //Cambiar contraseña (con validacion)
         //Si la contraseña es null, undefined o string vacio, se borrara del objeto updates.
         //Sin esto saltara error al cambiar datos de usuario

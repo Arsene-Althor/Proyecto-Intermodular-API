@@ -15,7 +15,9 @@ router.post('/cancel', reservationController.cancelReservation);
 router.put('/update', reservationController.updateReservation);
 
 // Obtener reservas
-router.use('/mine',reservationController.getMine)
+router.use('/mine',reservationController.getMine);
+router.use("/getPrice" ,reservationController.calculatePrice);
+router.use("/getCancelationPrice", reservationController.calculateCancelationPrice);
 
 router.use(requireRole(['admin','employee']));
 

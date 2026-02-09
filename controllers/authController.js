@@ -54,7 +54,16 @@ async function login(req, res) {
         user_id: user.user_id,
         email: user.email,
         name: user.name,
-        role: user.role
+        surname: user.surname,
+        role: user.role,
+        profileImage: user.profileImage,
+        isVIP: user.isVIP,
+        discount: user.discount,
+        dni: user.dni,
+        birthDate: user.birthDate,
+        gender: user.gender,
+        city: user.city,
+        isActive: user.isActive
       }
     });
 
@@ -63,4 +72,20 @@ async function login(req, res) {
   }
 }
 
-module.exports = { login } ;
+async function logout(req, res){
+  try{
+    //Borramos la sesión del servidor
+    req.session.destroy((err) => {
+
+      if (err){
+        return res.status(500).json({error: 'No se pudo cerrar la sesión'});
+      }
+
+      return res.status(200).json({message: 'Sesión cerrada correctamente'});
+    });
+  } catch (err){
+    res.status(500).json({error: 'Error al cerrar sesión', detalle: err.message});
+  }
+}
+
+module.exports = { login, logout};

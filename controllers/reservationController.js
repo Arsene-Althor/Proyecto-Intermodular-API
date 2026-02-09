@@ -265,13 +265,52 @@ async function calculatePrice(req,res){
 
     let precioReserva = dias * room.price_per_night;
 
-    /*
-    if(user.isVIP == true){
-      let descuento = precioReserva * 0.20;
-      precioReserva = precioReserva - descuento;
-    }
-    */
+    let descuento = precioReserva * user.discount;
+    precioReserva = precioReserva - descuento;
+
     return res.json({precio: precioReserva})
+
+  }catch(err){
+    res.status(500).json({ error: 'Error al obtener precio', detalle: err.message });
+  }
+
+}
+
+async function calculateCancelationPrice(req,res){
+  try{
+    const { reservation_id, cancelation_date } = req.body;
+    if(!reservation_id || !cancelation_date) return res.status(404).json({ error: 'Faltan datos'});
+
+    //Validamos que los datos sean correctos
+
+    const reservation = await Reservation.findOne({reservation_id});
+
+    if(!reservation) return res.status(404).json({ error: 'Reserva no encontrada'});
+
+    let fechacancelacion = new Date(cancelation_date);
+    let fechaReserva = new Date(reservation.check_in);
+
+    const diferenciaMs = fechaReserva - fechacancelacion;
+
+    const diasFaltantes = Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24));
+
+    let precioCancel = reservation.price;
+    let discount = 0;
+
+    if(diasFaltantes <= 0){
+      return res.status(404).json({ error: 'No es posible cancelar la reserva en la fecha actual'});
+    }else if(diasFaltantes >= 7){
+      discount = precioCancel * 1;
+    }else if(diasFaltantes >= 3){
+      discount = precioCancel * 0.5;
+    }else if(diasFaltantes >=1){
+      discount = precioCancel * 0.15;
+    }
+
+    precioCancel = precioCancel - discount;
+    let conDosDecimales = Number(precioCancel.toFixed(2));
+    
+    return res.json({precio: conDosDecimales})
 
   }catch(err){
     res.status(500).json({ error: 'Error al obtener precio', detalle: err.message });
@@ -287,5 +326,6 @@ module.exports = {
   getAllReservations,
   getActiveReservations,
   updateReservation,
-  calculatePrice
+  calculatePrice,
+  calculateCancelationPrice
 };

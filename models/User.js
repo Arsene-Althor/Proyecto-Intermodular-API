@@ -67,11 +67,30 @@ const userSchema = new mongoose.Schema({
     unique: true,
     uppercase: true,
     sparse: true,
-    validate: { //Validador para formato del dni
-      validator: function (value){
-        return regex.dni.test(value);
+    validate: {
+      validator: function (value) {
+        // Primero verificamos el formato básico: 8 números + 1 letra
+        if (!regex.dni.test(value)) {
+          return false;
+        }
+        
+        // Algoritmo de validación del DNI español
+        // La letra se calcula dividiendo los 8 números entre 23
+        // El resto indica la posición en la tabla de letras
+        const letrasValidas = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        
+        // Extraemos los números y la letra del DNI
+        const numeros = parseInt(value.substring(0, 8), 10);
+        const letraProporcionada = value.charAt(8).toUpperCase();
+        
+        // Calculamos la letra correcta
+        const resto = numeros % 23;
+        const letraCorrecta = letrasValidas.charAt(resto);
+        
+        // Comparamos si coinciden
+        return letraProporcionada === letraCorrecta;
       },
-      message: 'El DNI debe tener formato válido: 8 números seguidos de 1 letra (ej: 12345678A, sin Ñ)'
+      message: 'El DNI no es válido. Verifica que la letra corresponda a los números (formato: 12345678X)'
     },
   },
   birthDate:{

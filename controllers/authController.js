@@ -54,7 +54,16 @@ async function login(req, res) {
         user_id: user.user_id,
         email: user.email,
         name: user.name,
-        role: user.role
+        surname: user.surname,
+        role: user.role,
+        profileImage: user.profileImage,
+        isVIP: user.isVIP,
+        discount: user.discount,
+        dni: user.dni,
+        birthDate: user.birthDate,
+        gender: user.gender,
+        city: user.city,
+        isActive: user.isActive
       }
     });
 

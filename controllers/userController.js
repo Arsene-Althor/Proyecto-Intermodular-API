@@ -1,6 +1,7 @@
 //Controllers/userController.js
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const {sendEmail} = require('../config/mailer.js');
 
 async function generateUserId(role) {
     
@@ -121,6 +122,21 @@ async function registroUser(req, res){
 
     //Guardar en mongo
     await newUser.save();
+
+    const asunto = "¡Bienvenido al Hotel Pere Maria!";
+    const mensajeHtml = `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+                <h1>¡Hola ${name} ${surname}!</h1>
+                <p>Tu cuenta ha sido creada exitosamente.</p>
+                <p>Gracias por registrarte en nuestra aplicación. Ahora puedes reservar tus habitaciones favoritas.</p>
+                <br>
+                <p>Atentamente,<br>El equipo del Hotel Pere María</p>
+            </div>
+    `;
+
+    sendEmail(email, asunto, mensajeHtml);
+
+    
 
     //Convertir el documento Mongoose a objeto plano JavaScript
     const userResponse = newUser.toObject();

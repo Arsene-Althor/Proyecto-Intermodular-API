@@ -70,8 +70,8 @@ async function addReservation(req, res) {
     ayer.setDate(ayer.getDate() - 1);
     ayer.setHours(12, 0);
 
-    if (nuevaEntrada < ayer) return { error: 'La fecha de entrada no puede ser inferior a la fecha actual', respuesta: false };
-    if (nuevaEntrada >= nuevaSalida) return { error: 'La fecha de entrada no puede ser superiror a la de salida', respuesta: false };
+    if (nuevaEntrada < ayer) return res.status(400).json({ error: 'La fecha de entrada no puede ser inferior a la fecha actual'});
+    if (nuevaEntrada >= nuevaSalida) return res.status(400).json({ error: 'La fecha de entrada no puede ser superiror a la de salida'})
 
     let new_id;
     let ultimo_id = await Reservation.findOne()

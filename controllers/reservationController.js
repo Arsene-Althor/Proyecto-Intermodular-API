@@ -243,7 +243,7 @@ async function updateReservation(req, res) {
     let hoy = new Date();
 
     if(hoy >= reservation.check_in) return res.status(400).json({ error: 'No es posible modificar la entrada de una reserva en curso' });
-    if(nuevaEntrada >= nuevaSalida) return res.status(400).json({ error: 'La fecha de entrda no puede superar la fecha de salida' });
+    if(nuevaEntrada >= nuevaSalida) return res.status(400).json({ error: 'La fecha de entrada no puede superar la fecha de salida' });
 
     if (reservation.check_in <= hoy || !check_in) {
       nuevaEntrada = reservation.check_in;

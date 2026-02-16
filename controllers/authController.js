@@ -72,19 +72,16 @@ async function login(req, res) {
   }
 }
 
-async function logout(req, res){
-  try{
-    //Borramos la sesión del servidor
-    req.session.destroy((err) => {
-
-      if (err){
-        return res.status(500).json({error: 'No se pudo cerrar la sesión'});
-      }
-
-      return res.status(200).json({message: 'Sesión cerrada correctamente'});
+async function logout(req, res) {
+  try {
+    // Con JWT el servidor no mantiene una sesión activa.
+    // El "logout" real consiste en que la aplicación cliente (Android/WPF)
+    // elimine el token que tiene guardado.
+    return res.status(200).json({ 
+      message: 'Sesión cerrada correctamente. Recuerda eliminar el token en la aplicación cliente.' 
     });
-  } catch (err){
-    res.status(500).json({error: 'Error al cerrar sesión', detalle: err.message});
+  } catch (err) {
+    res.status(500).json({ error: 'Error al procesar el cierre de sesión', detalle: err.message });
   }
 }
 

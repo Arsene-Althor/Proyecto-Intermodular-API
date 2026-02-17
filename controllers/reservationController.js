@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Room = require('../models/Room');
 const mongoose = require('mongoose');
 
+//Función para comprobar ocupación
 async function checkOcupation(check_in, check_out, room_id, reservation_id) {
   //Las fechas de entrada y salida siempre son de 12 a 11
   let nuevaEntrada = new Date(check_in);
@@ -35,7 +36,6 @@ async function checkOcupation(check_in, check_out, room_id, reservation_id) {
 
 }
 // Añadir reserva
-//Fata validación para existencia de usuario y habitación
 async function addReservation(req, res) {
   try {
     const { room_id, user_id, check_in, check_out, price } = req.body;
@@ -156,56 +156,22 @@ async function getAllReservations(req, res) {
   }
 }
 
+//Obtener reservas Activas
 async function getActiveReservations(req, res) {
-
-  try {
+  try{
     let hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-
-    const reservations = await Reservation.aggregate([
-      {
-        $match: {
-          cancelation_date: null,
-          check_out: { $gte: hoy }
-        }
-      },
-      {
-        $lookup: {
-          from: "rooms", // Nombre de la colección en MongoDB
-          localField: "room_id",
-          foreignField: "room_id",
-          as: "roomDetails"
-        }
-      },
-      {
-        $addFields: {
-          // Extraemos la imagen del primer elemento del array (si existe)
-          roomImage: {
-            $ifNull: [
-              { $arrayElemAt: ["$roomDetails.image", 0] },
-              'https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=2069&auto=format&fit=crop'
-            ]
-          }
-        }
-      },
-      {
-        $project: {
-          roomDetails: 0 // Opcional: quitamos el array completo para no enviar data extra
-        }
-      }
-    ]);
-
-    if (!reservations || reservations.length === 0) {
+    const reservations = await Reservation.find({cancelation_date : null, check_out: { $gte: hoy }});
+    if(!reservations || reservations.length === 0){
       return res.status(200).json([]);
     }
-
     res.json(reservations)
 
-  } catch (err) {
-    console.error("Error getActiveReservations:", err);
+  }catch(err){
     res.status(500).json({ error: 'Error al listar las reservas', detalle: err.message });
   }
 }
+
 //Obtener las reservas del usuario logeado
 async function getMine(req, res) {
   try {
@@ -279,7 +245,7 @@ async function updateReservation(req, res) {
   }
 }
 
-//Funcion para calcularPrecio pendiente utilizar
+//Funcion para calcular Precio 
 async function calculatePrice(req, res) {
   try {
     const { room_id, user_id, check_in, check_out } = req.body;
@@ -314,7 +280,7 @@ async function calculatePrice(req, res) {
   }
 
 }
-
+//Función para calcular el precio de la reserva tras la cancelación
 async function calculateCancelationPrice(req, res) {
   try {
     const { reservation_id, cancelation_date } = req.body;

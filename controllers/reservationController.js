@@ -233,11 +233,6 @@ async function updateReservation(req, res) {
     let room = await Room.findOne({ room_id });
     if (!room) return res.status(400).json({ error: 'La habitación introducida no existe' });
 
-    const precioNum = Number.parseFloat(price).valueOf();
-
-    if (isNaN(precioNum) || precioNum <= 0) {
-      return res.status(400).json(precioNum);
-    }
     //Falta validación para que no se pueda modifcar la fecha de entrada una vez pasada la fecha de entrada
     let nuevaEntrada = new Date(check_in);
     nuevaEntrada.setHours(12, 0, 0, 0);
@@ -247,12 +242,22 @@ async function updateReservation(req, res) {
 
     let hoy = new Date();
 
+    if(hoy >= reservation.check_in && nuevaEntrada > reservation.check_in ) return res.status(400).json({ error: 'No es posible modificar la entrada de una reserva en curso' });
+    if(nuevaEntrada >= nuevaSalida) return res.status(400).json({ error: 'La fecha de entrada no puede superar la fecha de salida' });
+
     if (reservation.check_in <= hoy || !check_in) {
       nuevaEntrada = reservation.check_in;
       if (nuevaSalida < hoy) {
-        return res.status(400).json({ error: 'La reserva esta vencida' });
+        return res.status(400).json({ error: 'La reserva esta vencida no se puede modificar' });
       }
     }
+
+    const precioNum = Number.parseFloat(price).valueOf();
+
+    if (isNaN(precioNum) || precioNum <= 0) {
+      return res.status(400).json({ error: 'El nuevo precio de la reserva no es valido' });
+    }
+    
 
     //Validación habitacion no ocupada
     let verif = await checkOcupation(check_in, check_out, room_id, reservation_id);

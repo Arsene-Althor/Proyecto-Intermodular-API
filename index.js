@@ -1,5 +1,4 @@
-// index.js
-//Modificacion 3
+
 const express = require('express');
 const session = require('express-session');
 const authRoutes = require('./routes/authRoutes');
@@ -16,22 +15,13 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Sesión (almacenada en memoria)
-app.use(session({
-  secret: 'secreto-examen',
-  resave: false,
-  saveUninitialized: false
-}));
-
 dbConnection();
 
 // Rutas
 app.use('/auth', authRoutes);
 app.use('/reservation',reservationRoutes)
-//app.use('/room',roomRoutes)
 app.use('/user',userRoutes);
 app.use('/room',roomRoutes) //RUTAS DEFINIDAS Y FUNCIONALES, FALTAN DEFINIR BIEN ROLES
-//app.use('/user',userRoutes)
 
 //Multer para subida de imagenes
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

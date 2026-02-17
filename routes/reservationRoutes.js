@@ -7,7 +7,6 @@ const { requireLogin, requireRole } = require('../middleware/authMiddleware');
 // Todas requieren estar autenticado
 router.use(requireLogin);
 
-//Faltan Roles
 // Añadir Reserva
 router.post('/add', reservationController.addReservation);
 // Eliminar y modificar reserva

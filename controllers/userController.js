@@ -443,4 +443,37 @@ async function updateDiscount(req, res){
     }
 }
 
-module.exports = {registroUser,addEmployee, getAllUsers, removeUsers, modifyUser, updateDiscount};
+//Funcion para que el propio usuario desactive su cuenta
+async function deactivateAccount(req, res){
+    try{
+        //Sacamos el user_id del token JWT (el usuario solo puede desactivarse a si mismo)
+        const userId = req.user.user_id;
+
+        //Buscamos al usuario en la BD
+        const user = await User.findOne({user_id: userId});
+
+        if (!user){
+            return res.status(404).json({error: 'Usuario no encontrado'});
+        }
+
+        //Verificamos que no este ya desactivado
+        if (!user.isActive){
+            return res.status(400).json({error: 'La cuenta ya está desactivada'});
+        }
+
+        //Ponemos isActive a false y actualizamos la fecha
+        user.isActive = false;
+        user.updatedAt = new Date();
+        await user.save();
+
+        return res.status(200).json({
+            message: 'Tu cuenta ha sido desactivada correctamente',
+            user_id: user.user_id
+        });
+
+    } catch (err){
+        return res.status(500).json({error: 'Error al desactivar la cuenta', detalle: err.message});
+    }
+}
+
+module.exports = {registroUser,addEmployee, getAllUsers, removeUsers, modifyUser, updateDiscount, deactivateAccount};

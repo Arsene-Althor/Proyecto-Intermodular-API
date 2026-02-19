@@ -8,6 +8,7 @@ const {
   removeUsers,
   modifyUser,
   updateDiscount,
+  deactivateAccount,
 } = require("../controllers/userController.js");
 const {
   requireLogin,
@@ -65,5 +66,12 @@ router.patch(
   requireRole(["admin", "employee"]),
   updateDiscount,
 ); // PATCH /api/users/update/:userId
+
+//Ruta para que el usuario desactive su propia cuenta (solo necesita estar logueado)
+router.patch(
+  "/deactivate",
+  requireLogin,
+  deactivateAccount,
+); // PATCH /api/users/deactivate
 
 module.exports = router;

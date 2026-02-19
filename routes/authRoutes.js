@@ -12,4 +12,8 @@ router.post('/login', authController.login);
 //POST /api/auth/logout
 router.post('/logout', authController.logout);
 
+//Recuperar contraseña (ruta publica, el usuario no esta logueado)
+//POST /api/auth/recover
+router.post('/recover', authController.recoverPassword);
+
 module.exports = router;

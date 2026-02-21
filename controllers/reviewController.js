@@ -1,6 +1,4 @@
-/* =====================================================
-   ============ CONTROLADOR DE RESEÑAS =================
-   =====================================================
+/* ============ CONTROLADOR DE RESEÑAS =================
 
    Funciones:
     - getReviewsByRoom: Obtiene todas las reseñas de una habitación

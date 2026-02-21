@@ -1,12 +1,10 @@
-/* =====================================================
-   ============= ROUTES DE RESEÑAS =====================
-   =====================================================
+/* ============= ROUTES DE RESEÑAS =====================
 
    Rutas:
     - GET  /review/room/:roomId  → Obtener reseñas de una habitación (público)
     - POST /review/create        → Crear reseña (requiere login)
     - DELETE /review/delete      → Eliminar reseña propia (requiere login)
-   ===================================================== */
+*/
 
 const express = require('express');
 const router = express.Router();

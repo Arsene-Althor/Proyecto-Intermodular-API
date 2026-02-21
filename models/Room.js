@@ -35,7 +35,8 @@ const roomSchema = new mongoose.Schema({
     },
     image: {
         type: String,
-        required: true
+        required: true,
+        default: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=2069&auto=format&fit=crop'
     },
     price_per_night: {
         type: Number,

@@ -26,5 +26,6 @@ router.get('/one', roomController.getRoom)
 router.post('/create', roomController.createRoom)
 router.delete('/delete', roomController.deleteRoom)
 router.get("/available", roomController.getAvailableRooms)
+router.put("/update", roomController.updateRoom);
 
 module.exports = router;

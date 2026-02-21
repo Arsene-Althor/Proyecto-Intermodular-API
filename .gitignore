@@ -1,1 +1,8 @@
-/node_modules/
+# Seguridad
+.env
+
+# Dependencias
+node_modules/
+
+# Logs y otros
+npm-debug.log

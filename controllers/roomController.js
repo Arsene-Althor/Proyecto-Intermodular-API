@@ -24,7 +24,7 @@ const Reservation = require("../models/Reservation");
 
 async function getRoom(req, res) {
   try {
-    const { room_id } = req.body;
+    const room_id = req.query.room_id || req.body.room_id;
     const room = await Room.findOne({ room_id }).lean();
     if (!room) return res.status(404).json({ error: 'Habitacion no encontrada' });
     if (!room.image) room.image = 'https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=2069&auto=format&fit=crop';

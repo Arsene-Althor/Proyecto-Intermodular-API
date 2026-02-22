@@ -86,15 +86,14 @@ const createReview = async (req, res) => {
         await recalculateRoomRate(room_id);
 
         return res.status(201).json({
-            message: 'Reseña creada correctamente',
-            review
+            message: 'Reseña creada correctamente'
         });
     } catch (error) {
         console.error('Error al crear reseña:', error);
         if (error.name === 'ValidationError') {
             return res.status(400).json({ error: error.message });
         }
-        return res.status(500).json({ error: 'Error interno del servidor' });
+        return res.status(500).json({ error: error.message });
     }
 };
 

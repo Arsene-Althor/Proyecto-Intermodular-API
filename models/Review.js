@@ -59,7 +59,7 @@ const reviewSchema = new mongoose.Schema({
 });
 
 // Generar review_id automáticamente antes de guardar
-reviewSchema.pre('save', async function (next) {
+reviewSchema.pre('save', async function () {
     if (!this.review_id) {
         const counter = await Counter.findByIdAndUpdate(
             'review_id',
@@ -68,7 +68,6 @@ reviewSchema.pre('save', async function (next) {
         );
         this.review_id = `REV-${String(counter.seq).padStart(5, '0')}`;
     }
-    next();
 });
 
 const Review = mongoose.model('Review', reviewSchema);

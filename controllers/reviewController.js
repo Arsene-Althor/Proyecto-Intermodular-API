@@ -40,6 +40,21 @@ const getReviewsByRoom = async (req, res) => {
 };
 
 /**
+ * GET /review/user
+ * Obtiene todas las reseñas creadas por el usuario autenticado
+ */
+const getUserReviews = async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+        const reviews = await Review.find({ user_id }).sort({ createdAt: -1 });
+        return res.status(200).json(reviews);
+    } catch (error) {
+        console.error('Error al obtener reseñas del usuario:', error);
+        return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+};
+
+/**
  * POST /review/create
  * Crea una nueva reseña. Validaciones:
  *  1. El usuario debe tener al menos una reserva en esa habitación
@@ -135,4 +150,4 @@ const deleteReview = async (req, res) => {
     }
 };
 
-module.exports = { getReviewsByRoom, createReview, deleteReview };
+module.exports = { getReviewsByRoom, getUserReviews, createReview, deleteReview };

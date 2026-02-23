@@ -14,6 +14,9 @@ const { requireLogin } = require('../middleware/authMiddleware');
 // Obtener reseñas de una habitación (público, no requiere token)
 router.get('/room/:roomId', reviewController.getReviewsByRoom);
 
+// Obtener todas las reseñas del usuario logueado
+router.get('/user', requireLogin, reviewController.getUserReviews);
+
 // Crear una reseña (requiere estar logueado)
 router.post('/create', requireLogin, reviewController.createReview);
 
